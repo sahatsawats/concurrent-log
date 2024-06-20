@@ -62,6 +62,7 @@ func (l *Logger) run() {
 // The `Log` method of the `Logger` struct is used to log messages with a specified level and content.
 func (l *Logger) Log(level string, msg string) {
 	payload := fmt.Sprintf("%s %s", level, msg)
+	fmt.Print(payload)
 	l.msgChan <- payload
 }
 
