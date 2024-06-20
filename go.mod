@@ -1,3 +1,3 @@
-module github.com/sahatsawats/concurrent-log
+module sahatsawats/concurrent-log
 
 go 1.21.6
