@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 )
 
 // Define Logger structure
@@ -52,9 +51,7 @@ func (l *Logger) run() {
 		// If received done signal -> break the loop
 		select {
 		case msg := <-l.msgChan:
-			time.Sleep(time.Millisecond * 100)
 			l.logger.Println(msg)
-			fmt.Println("Logged:", msg)
 		case <-l.done:
 			return
 
@@ -67,7 +64,6 @@ func (l *Logger) Log(level string, msg string) {
 	payload := fmt.Sprintf("%s %s", level, msg)
 	select {
 	case l.msgChan <- payload:
-		fmt.Println("Log message sent:", payload)
 	default:
 		// Handle the case where the channel is full (e.g., log to stderr or drop the message)
 		fmt.Fprintln(os.Stderr, "Log channel is full, message dropped:", payload)
