@@ -1,21 +1,20 @@
 package concurrentlog
-
+// version 1.0.5
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
-	"io"
+	"time"
 )
 
 // Define Logger structure
 type Logger struct {
-	
-	logFile		*os.File // Define location of log file
-	logger		*log.Logger // Define the defaults log package
-	msgChan		chan string // Message channel for goroutine to send messages into
-	done		chan struct{} // Used for stoping the chennel
+	logFile *os.File      // Define location of log file
+	logger  *log.Logger   // Define the defaults log package
+	msgChan chan string   // Message channel for goroutine to send messages into
+	done    chan struct{} // Used for stoping the chennel
 }
-
 
 // The NewLogger function creates a new logger instance with a specified file path and buffer size for
 // logging messages.
@@ -28,21 +27,19 @@ func NewLogger(filePath string, buffersize int) (*Logger, error) {
 
 	// Add multiple writer to return stdout.
 	multiWriter := io.MultiWriter(os.Stdout, file)
-	
+
 	// Logger Construction
 	logger := &Logger{
-		logFile: 	file,
-		logger: 	log.New(multiWriter, "", log.LstdFlags),
-		msgChan: 	make(chan string, buffersize),
-		done: 		make(chan struct{}),
+		logFile: file,
+		logger:  log.New(multiWriter, "", log.LstdFlags),
+		msgChan: make(chan string, buffersize),
+		done:    make(chan struct{}),
 	}
 	// Initialize the logger goroutine
 	go logger.run()
 
 	return logger, nil
 }
-
-
 
 // The `run` method of the `Logger` struct is a goroutine function that continuously listens for
 // messages on the `msgChan` channel. It uses a select statement to either consume messages from the
@@ -54,21 +51,29 @@ func (l *Logger) run() {
 		// Select case, if consume normal data from buffer channel -> logging.
 		// If received done signal -> break the loop
 		select {
-		case msg := <- l.msgChan:
+		case msg := <-l.msgChan:
+			time.Sleep(time.Millisecond * 100)
 			l.logger.Println(msg)
-		case <- l.done:
+			fmt.Println("Logged:", msg)
+		case <-l.done:
 			return
+
 		}
 	}
 }
 
-
 // The `Log` method of the `Logger` struct is used to log messages with a specified level and content.
 func (l *Logger) Log(level string, msg string) {
 	payload := fmt.Sprintf("%s %s", level, msg)
-	l.msgChan <- payload
-}
+	select {
+	case l.msgChan <- payload:
+		fmt.Println("Log message sent:", payload)
+	default:
+		// Handle the case where the channel is full (e.g., log to stderr or drop the message)
+		fmt.Fprintln(os.Stderr, "Log channel is full, message dropped:", payload)
+	}
 
+}
 
 // The `Close` method of the `Logger` struct is responsible for closing the logger instance. Here's
 // what it does:
